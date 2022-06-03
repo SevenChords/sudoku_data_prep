@@ -1,6 +1,7 @@
 import os, os.path
 import numpy as np
 import re
+import multiprocessing
 
 def read(_line):
   filename = 'input'
@@ -20,9 +21,12 @@ def read(_line):
       i = i + 1
   return puzzle_array
 
-def write(_puzzle, _solution):
+def write(_puzzle, _solution, _worker_index):
   filename = 'sudoku_data'
-  with open(filename, 'ab') as puzzle_data:
+  DIR = 'worker_' + str(_worker_index)
+  if(not(os.path.exists(DIR))):
+    os.makedirs(DIR)
+  with open(os.path.join(DIR, filename), 'ab') as puzzle_data:
     puzzle_data.write(bytearray(_puzzle.flatten()))
     puzzle_data.write(bytearray(_solution.flatten()))
 
@@ -136,13 +140,13 @@ def solve(_puzzle):
           solve_failed = False
           attempt_go = True
           guesses = guesses + 1
-          print(guesses)
+          #print(guesses)
       if(solve_failed):
         puzzle = backup_stack[-1][0]
         number_stack.clear()
         number_stack = backup_stack[-1][1]
         backup_stack.pop()
-    elif(errors_on_board(puzzle) or (get_sum(possible_numbers) == 0 and not(0 in puzzle))):
+    elif(errors_on_board(puzzle) or (get_sum(possible_numbers) == 0 and 0 in puzzle)):
       puzzle = backup_stack[-1][0]
       number_stack.clear()
       number_stack = backup_stack[-1][1]
@@ -150,9 +154,38 @@ def solve(_puzzle):
     last_state = puzzle.copy()
   return puzzle
 
-for i in range(49158):
-  puzzle = read(i)
-  solution = solve(puzzle)
-  print(i, ' puzzles solved')
-  write(puzzle, solution)
+def worker(_work_queue, _done_queue):
+  while(True):
+    job = _work_queue.get(True)
+    sleep(0.1*job[0])
+    index = job[0]
+    while(index <= 49157):
+      write(read(index), solve(read(index)), job[0])
+      index = index + 8
+    _done_queue.put(job[0], False)
+
+def work():
+  done_queue = multiprocessing.Queue(8)
+  work_queue = multiprocessing.Queue(8)
+  instances = []
+  for i in range(8):
+    instance = multiprocessing.Process(target=worker, args=(work_queue, done_queue))
+    instance.daemon = True
+    instance.start()
+    instances.append(instance)
+  for i in range(8):
+    job = [i]
+    work_queue.put(job, False)
+  done_counter = 0
+  while(done_counter < 8):
+    done_index = done_queue.get(True)
+    print('worker ', done_index, ' is done.')
+    done_counter = done_counter = 1
+  for instance in instances:
+    instance.terminate()
+  return 0
+
+multiprocessing.freeze_support()
+work()
+print('all done.')
 
