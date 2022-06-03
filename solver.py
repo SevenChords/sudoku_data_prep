@@ -184,8 +184,8 @@ def work():
   for instance in instances:
     instance.terminate()
   return 0
-
-multiprocessing.freeze_support()
-work()
-print('all done.')
+if(__name__ == '__main__':
+  multiprocessing.freeze_support()
+  work()
+  print('all done.')
 
