@@ -159,29 +159,31 @@ def worker(_work_queue, _done_queue):
   while(True):
     job = _work_queue.get(True)
     sleep(0.1*job[0])
-    index = job[0]
-    while(index <= 49157):
-      write(read(index), solve(read(index)), job[0])
-      index = index + 8
+    work_done = 0
+    write(read(job[1]), solve(read(job[1])), job[0])
     _done_queue.put(job[0], False)
 
 def work():
   done_queue = multiprocessing.Queue(8)
   work_queue = multiprocessing.Queue(8)
   instances = []
-  for i in range(8):
+  for i in range(7):
     instance = multiprocessing.Process(target=worker, args=(work_queue, done_queue))
     instance.daemon = True
     instance.start()
     instances.append(instance)
-  for i in range(8):
-    job = [i]
+  offset = 0
+  for i in range(49158):
+    job = [offset, i]
     work_queue.put(job, False)
+    offset = offset + 1
+    if(offset >= 8):
+      offset = 0
   done_counter = 0
-  while(done_counter < 8):
-    done_index = done_queue.get(True)
-    print('worker ', done_index, ' is done.')
+  while(done_counter < 49158):
+    wait = done_queue.get(True)
     done_counter = done_counter = 1
+    print(done_counter + ' puzzles solved')
   for instance in instances:
     instance.terminate()
   return 0
