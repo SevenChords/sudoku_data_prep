@@ -2,6 +2,7 @@ import os, os.path
 import numpy as np
 import re
 import multiprocessing
+from time import sleep
 
 def read(_line):
   filename = 'input'
